@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.py[cod]
+
+# environment / secrets
+.env
+
+# runtime data (contains real keys — NEVER commit)
+*.db
+data/

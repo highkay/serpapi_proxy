@@ -1,0 +1,23 @@
+services:
+  serpapi-proxy:
+    build:
+      context: .
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    container_name: serpapi-proxy
+    ports:
+      - "48081:8001"
+    volumes:
+      - "./data:/data"
+    environment:
+      - MASTER_KEY=${MASTER_KEY:-}
+      - POOL_DB_PATH=/data/pool.db
+      - PORT=8001
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
