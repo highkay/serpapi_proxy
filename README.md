@@ -114,8 +114,17 @@ curl -s -H "Authorization: Bearer $MASTER_KEY" \
 
 ## 运维
 
-- **备份**：`data/pool.db` 一个文件即全部状态（每操作短连接，运行中 cp 也安全；
-  稳妥做法是先 `docker compose down` 再拷）。已实测换机迁移零丢失。
+- **备份**：`data/pool.db` 一个文件即全部状态，但**不要在运行中直接 `cp`** —
+  拷贝可能横跨一次未完成的写提交，得到损坏文件。两种安全做法：
+  1. 停机复制：`docker compose down && cp data/pool.db pool.db.bak && docker compose up -d`；
+  2. 在线备份（不用停机，走 SQLite 热备份 API）：
+     ```bash
+     docker exec serpapi-proxy python -c \
+       "import sqlite3; src=sqlite3.connect('/data/pool.db'); \
+        dst=sqlite3.connect('/data/pool-backup.db'); src.backup(dst); dst.close()"
+     # 备份文件落在宿主机 data/pool-backup.db（bind mount）
+     ```
+  按做法 1 换机迁移已实测零丢失（2026-08-30, 410→420 key）。
 - **换 MASTER_KEY**：改 `.env` → `docker compose up -d`（自动 recreate）；
   同步更新所有接入方（harvester `SERPAPI_PROXY_AUTH_KEY`）。
 - **监控**：`/healthz` 探针 + 容器 healthcheck（30s/10s/3 次）。
